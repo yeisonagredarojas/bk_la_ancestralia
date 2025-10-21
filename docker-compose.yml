@@ -1,0 +1,53 @@
+# version: '3.8'
+
+# services:
+#   postgres:
+#     image: postgres:15-alpine
+#     container_name: postgres-inga
+#     environment:
+#       POSTGRES_DB: lengua_inga_bd
+#       POSTGRES_USER: inga_user
+#       POSTGRES_PASSWORD: inga_password
+#     ports:
+#       - '5432:5432'
+#     volumes:
+#       - postgres_data2:/var/lib/postgresql/data
+
+#   pgadmin:
+#     image: dpage/pgadmin4:latest
+#     container_name: pgadmin
+#     environment:
+#       PGADMIN_DEFAULT_EMAIL: admin@inga.com
+#       PGADMIN_DEFAULT_PASSWORD: admin123
+#     ports:
+#       - '5050:80'
+#     depends_on:
+#       - postgres
+#     volumes:
+#       - pgadmin_data2:/var/lib/pgadmin
+
+# volumes:
+#   postgres_data:
+#   pgadmin_data:
+
+# # Comando para iniciar: docker-compose up -d
+# # Comando para detener: docker-compose down
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-inga
+    restart: always
+    environment:
+      POSTGRES_DB: lengua_inga
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
