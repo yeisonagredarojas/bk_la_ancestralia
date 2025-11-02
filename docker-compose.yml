@@ -48,6 +48,38 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ## desde aqui
+    networks:
+      - inga-network
 
+  backend:
+    build: .
+    container_name: backend-inga
+    restart: always
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: admin
+      DB_PASSWORD: admin123
+      DB_DATABASE: lengua_inga
+      PORT: 3000
+      JWT_SECRET: tu_secreto_super_seguro_aqui_12345
+      JWT_EXPIRATION: 7d
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - inga-network
+      ##hasta aqui
 volumes:
   postgres_data:
+
+#desde aqui
+networks:
+  inga-network:
+    driver: bridge
+#hasta aqui

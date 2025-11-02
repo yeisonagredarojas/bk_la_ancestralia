@@ -3,13 +3,16 @@ import * as bcrypt from 'bcrypt';
 
 const AppDataSource = new DataSource({
   type: 'postgres',
-  host: 'localhost',
+  // host: 'localhost',
+  // host: '127.0.0.1',
+  host: 'postgres',
   port: 5432,
   username: 'admin',
   password: 'admin123',
   database: 'lengua_inga',
   entities: ['src/entities/*.entity.ts'],
-  synchronize: false,
+  // synchronize: false,
+  synchronize: true,
 });
 
 async function seed() {
