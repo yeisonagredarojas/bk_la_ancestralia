@@ -220,4 +220,14 @@ export class GamesController {
       soloImagen,
     );
   }
+  // Obtener oraciones para juego de completar frases
+  @Get('oraciones')
+  obtenerOracionesParaJuego(
+    @Query('nivel_dificultad') nivelDificultad?: string,
+    @Query('cantidad') cantidad?: string,
+  ) {
+    const nivel = nivelDificultad || 'medio';
+    const cantidadNum = cantidad ? parseInt(cantidad, 10) : 6;
+    return this.gamesService.obtenerOracionesParaJuego(nivel, cantidadNum);
+  }
 }

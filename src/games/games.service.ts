@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';  // ← CORREGIR
+import { Repository, DataSource } from 'typeorm';  // ← CORREGIR
 import { Juego } from '../entities/juego.entity';
 import { Partida } from '../entities/partida.entity';
 import { ProgresoJuego } from '../entities/progreso-juego.entity';
@@ -22,6 +22,8 @@ export class GamesService {
     private palabraRepository: Repository<Palabra>,
     @InjectRepository(Leccion)
     private leccionRepository: Repository<Leccion>,
+    @InjectDataSource()  // ← CAMBIAR de InjectConnection a InjectDataSource
+    private dataSource: DataSource,  // ← CAMBIAR de Connection a DataSource
   ) {}
 
   // Obtener todos los juegos disponibles
@@ -454,6 +456,74 @@ export class GamesService {
         categoria: palabraCorrecta.categoria,
       };
     });
+
+    return resultado;
+  }
+
+  // Obtener oraciones para el juego de completar frases
+  async obtenerOracionesParaJuego(
+    nivel_dificultad: string = 'medio',
+    cantidad: number = 6,
+  ) {
+    const oraciones = await this.dataSource.query(  // ← CAMBIAR connection por dataSource
+      `SELECT * FROM oraciones 
+      WHERE nivel_dificultad = $1 
+      ORDER BY RANDOM() 
+      LIMIT $2`,
+      [nivel_dificultad, cantidad]
+    );
+
+    if (oraciones.length < cantidad) {
+      throw new BadRequestException(
+        `No hay suficientes oraciones de dificultad "${nivel_dificultad}". Se requieren al menos ${cantidad}`,
+      );
+    }
+
+    // Para cada oración, generar opciones
+    const resultado = await Promise.all(
+      oraciones.map(async (oracion) => {
+        // Buscar palabras similares para distractores
+        const palabrasSimilares = await this.palabraRepository
+          .createQueryBuilder('palabra')
+          .where('palabra.palabra_inga != :palabraClave', {
+            palabraClave: oracion.palabra_clave_inga,
+          })
+          .orderBy('RANDOM()')
+          .limit(3)
+          .getMany();
+
+        // Mezclar la palabra correcta con los distractores
+        const opciones = this.shuffleArray([
+          {
+            palabra_inga: oracion.palabra_clave_inga,
+            traduccion_espanol: oracion.palabra_clave_espanol,
+            es_correcta: true,
+          },
+          ...palabrasSimilares.map(p => ({
+            palabra_inga: p.palabra_inga,
+            traduccion_espanol: p.traduccion_espanol,
+            es_correcta: false,
+          })),
+        ]);
+
+        // Crear versión de la frase con hueco
+        const textoConHueco = oracion.texto_espanol.replace(
+          new RegExp(oracion.palabra_clave_espanol, 'i'),
+          '_____'
+        );
+
+        return {
+          id_oracion: oracion.id_oracion,
+          texto_espanol: textoConHueco,
+          texto_completo_espanol: oracion.texto_espanol,
+          texto_inga: oracion.texto_inga,
+          palabra_correcta: oracion.palabra_clave_inga,
+          palabra_correcta_espanol: oracion.palabra_clave_espanol,
+          opciones: opciones,
+          categoria: oracion.categoria,
+        };
+      })
+    );
 
     return resultado;
   }
