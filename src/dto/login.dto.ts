@@ -1,3 +1,4 @@
+// Actualizar src/dto/login.dto.ts
 import { IsEmail, IsNotEmpty, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
