@@ -7,6 +7,9 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { Usuario } from '../entities/usuario.entity';
+import { RolesGuard } from './roles.guard';
+import { APP_GUARD } from '@nestjs/core';
+
 
 @Module({
   imports: [
@@ -24,6 +27,13 @@ import { Usuario } from '../entities/usuario.entity';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+  ],
 })
 export class AuthModule {}

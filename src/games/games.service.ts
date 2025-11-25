@@ -8,6 +8,7 @@ import { Palabra } from '../entities/palabra.entity';
 import { Leccion } from '../entities/leccion.entity';
 import { CreatePartidaDto } from '../dto/create-partida.dto';
 import { FinalizarPartidaDto } from '../dto/finalizar-partida.dto';
+import { CreateOracionDto } from '../dto/create-oracion.dto';
 
 @Injectable()
 export class GamesService {
@@ -63,44 +64,103 @@ export class GamesService {
   }
 
   // Obtener palabras para el juego de emparejar
-  async obtenerPalabrasParaJuego(id_leccion?: number, cantidad: number = 6) {
+  async obtenerPalabrasParaJuego(
+    id_leccion?: number,
+    cantidad: number = 6,
+    idioma: string = 'es',
+  ) {
     let palabras: Palabra[];
 
     if (id_leccion) {
-      // Obtener palabras de una lección específica
+      // Si viene una lección, obtener solo sus palabras
       const leccion = await this.leccionRepository.findOne({
         where: { id_leccion },
         relations: ['palabras'],
       });
-      if (!leccion) throw new NotFoundException('Lección no encontrada');
+
+      if (!leccion) {
+        throw new NotFoundException('Lección no encontrada');
+      }
+
       palabras = leccion.palabras;
     } else {
-      // Obtener palabras aleatorias de toda la base de datos
+      // Palabras aleatorias a nivel global
       palabras = await this.palabraRepository
         .createQueryBuilder('palabra')
         .orderBy('RANDOM()')
-        .limit(cantidad * 2) // Más palabras para asegurar variedad
+        .limit(cantidad * 2) // Más variedad
         .getMany();
     }
 
-    if (palabras.length < cantidad) {
+    // Verificación de cantidad mínima
+    if (!palabras || palabras.length < cantidad) {
       throw new BadRequestException(
         `No hay suficientes palabras disponibles. Se requieren al menos ${cantidad}`,
       );
     }
 
-    // Seleccionar aleatoriamente la cantidad especificada
+    // Selección final
     const palabrasSeleccionadas = this.shuffleArray(palabras).slice(0, cantidad);
 
     return palabrasSeleccionadas.map((palabra) => ({
       id_palabra: palabra.id_palabra,
       palabra_inga: palabra.palabra_inga,
+
+      /* ⭐ Integración con idiomas (del primer método) */
+      traduccion:
+        idioma === 'en'
+          ? palabra.traduccion_ingles
+          : palabra.traduccion_espanol,
+
       traduccion_espanol: palabra.traduccion_espanol,
-      categoria: palabra.categoria,
+      traduccion_ingles: palabra.traduccion_ingles,
+
+      /* ⭐ Integración de categorías multilenguaje */
+      categoria:
+        idioma === 'en' ? palabra.categoria_ingles : palabra.categoria,
+
       imagen: palabra.imagen,
       audio: palabra.audio,
     }));
   }
+  // async obtenerPalabrasParaJuego(id_leccion?: number, cantidad: number = 6) {
+  //   let palabras: Palabra[];
+
+  //   if (id_leccion) {
+  //     // Obtener palabras de una lección específica
+  //     const leccion = await this.leccionRepository.findOne({
+  //       where: { id_leccion },
+  //       relations: ['palabras'],
+  //     });
+  //     if (!leccion) throw new NotFoundException('Lección no encontrada');
+  //     palabras = leccion.palabras;
+  //   } else {
+  //     // Obtener palabras aleatorias de toda la base de datos
+  //     palabras = await this.palabraRepository
+  //       .createQueryBuilder('palabra')
+  //       .orderBy('RANDOM()')
+  //       .limit(cantidad * 2) // Más palabras para asegurar variedad
+  //       .getMany();
+  //   }
+
+  //   if (palabras.length < cantidad) {
+  //     throw new BadRequestException(
+  //       `No hay suficientes palabras disponibles. Se requieren al menos ${cantidad}`,
+  //     );
+  //   }
+
+  //   // Seleccionar aleatoriamente la cantidad especificada
+  //   const palabrasSeleccionadas = this.shuffleArray(palabras).slice(0, cantidad);
+
+  //   return palabrasSeleccionadas.map((palabra) => ({
+  //     id_palabra: palabra.id_palabra,
+  //     palabra_inga: palabra.palabra_inga,
+  //     traduccion_espanol: palabra.traduccion_espanol,
+  //     categoria: palabra.categoria,
+  //     imagen: palabra.imagen,
+  //     audio: palabra.audio,
+  //   }));
+  // }
 
   /*
   // Finalizar una partida y actualizar progreso
@@ -329,17 +389,30 @@ export class GamesService {
   }
 
   // Obtener categorías disponibles
-  async obtenerCategorias() {
+  async obtenerCategorias(idioma: string = 'es') {
+    const campo = idioma === 'en' ? 'categoria_ingles' : 'categoria';
     const categorias = await this.palabraRepository
       .createQueryBuilder('palabra')
-      .select('palabra.categoria')
+      .select(`palabra.${campo}`, 'categoria')
       .distinct(true)
-      .where('palabra.categoria IS NOT NULL')
-      .orderBy('palabra.categoria', 'ASC')
+      .where(`palabra.${campo} IS NOT NULL`)
+      .orderBy(`palabra.${campo}`, 'ASC')
       .getRawMany();
 
-    return categorias.map(c => c.palabra_categoria);
+    return categorias.map(c => c.categoria);
   }
+  // async obtenerCategorias() {
+  //   const categorias = await this.palabraRepository
+  //     .createQueryBuilder('palabra')
+  //     .select('palabra.categoria')
+  //     .distinct(true)
+  //     .where('palabra.categoria IS NOT NULL')
+  //     .orderBy('palabra.categoria', 'ASC')
+  //     .getRawMany();
+
+  //   return categorias.map(c => c.palabra_categoria);
+  // }
+
 
   // Obtener palabras por categoría para el juego de imágenes
   // async obtenerPalabrasPorCategoria(
@@ -401,6 +474,7 @@ export class GamesService {
     categoria: string,
     cantidad: number = 6,
     soloConImagen: boolean = false,
+    idioma: string = 'es',
   ) {
     const queryBuilder = this.palabraRepository
       .createQueryBuilder('palabra')
@@ -448,10 +522,17 @@ export class GamesService {
         imagen: palabraCorrecta.imagen,
         palabra_correcta: palabraCorrecta.palabra_inga,
         id_palabra_correcta: palabraCorrecta.id_palabra,
+        traduccion_correcta: idioma === 'en'  // ← AGREGAR ESTA LÍNEA
+          ? (palabraCorrecta.traduccion_ingles || palabraCorrecta.traduccion_espanol)
+          : palabraCorrecta.traduccion_espanol,
         opciones: opciones.map(o => ({
           id_palabra: o.id_palabra,
           palabra_inga: o.palabra_inga,
           traduccion_espanol: o.traduccion_espanol,
+          traduccion: idioma === 'en'
+            ? (o.traduccion_ingles || o.traduccion_espanol)
+            : o.traduccion_espanol,
+
         })),
         categoria: palabraCorrecta.categoria,
       };
@@ -464,8 +545,9 @@ export class GamesService {
   async obtenerOracionesParaJuego(
     nivel_dificultad: string = 'medio',
     cantidad: number = 6,
+    idioma: string = 'es',
   ) {
-    const oraciones = await this.dataSource.query(  // ← CAMBIAR connection por dataSource
+    const oraciones = await this.dataSource.query(
       `SELECT * FROM oraciones 
       WHERE nivel_dificultad = $1 
       ORDER BY RANDOM() 
@@ -474,15 +556,11 @@ export class GamesService {
     );
 
     if (oraciones.length < cantidad) {
-      throw new BadRequestException(
-        `No hay suficientes oraciones de dificultad "${nivel_dificultad}". Se requieren al menos ${cantidad}`,
-      );
+      throw new BadRequestException('No hay suficientes oraciones');
     }
 
-    // Para cada oración, generar opciones
     const resultado = await Promise.all(
       oraciones.map(async (oracion) => {
-        // Buscar palabras similares para distractores
         const palabrasSimilares = await this.palabraRepository
           .createQueryBuilder('palabra')
           .where('palabra.palabra_inga != :palabraClave', {
@@ -492,39 +570,150 @@ export class GamesService {
           .limit(3)
           .getMany();
 
-        // Mezclar la palabra correcta con los distractores
         const opciones = this.shuffleArray([
           {
             palabra_inga: oracion.palabra_clave_inga,
             traduccion_espanol: oracion.palabra_clave_espanol,
+            traduccion_ingles: oracion.palabra_clave_ingles,
+            traduccion: idioma === 'en' ? oracion.palabra_clave_ingles : oracion.palabra_clave_espanol,
             es_correcta: true,
           },
           ...palabrasSimilares.map(p => ({
             palabra_inga: p.palabra_inga,
             traduccion_espanol: p.traduccion_espanol,
+            traduccion_ingles: p.traduccion_ingles,
+            traduccion: idioma === 'en' ? p.traduccion_ingles : p.traduccion_espanol,
             es_correcta: false,
           })),
         ]);
 
-        // Crear versión de la frase con hueco
-        const textoConHueco = oracion.texto_espanol.replace(
-          new RegExp(oracion.palabra_clave_espanol, 'i'),
-          '_____'
-        );
+        const textoOriginal = idioma === 'en' ? oracion.texto_ingles : oracion.texto_espanol;
+        const palabraClave = idioma === 'en' ? oracion.palabra_clave_ingles : oracion.palabra_clave_espanol;
+        const textoConHueco = textoOriginal.replace(new RegExp(palabraClave, 'i'), '_____');
 
         return {
           id_oracion: oracion.id_oracion,
           texto_espanol: textoConHueco,
-          texto_completo_espanol: oracion.texto_espanol,
+          texto_completo_espanol: textoOriginal,
           texto_inga: oracion.texto_inga,
           palabra_correcta: oracion.palabra_clave_inga,
-          palabra_correcta_espanol: oracion.palabra_clave_espanol,
+          palabra_correcta_traduccion: palabraClave,
           opciones: opciones,
-          categoria: oracion.categoria,
+          categoria: idioma === 'en' ? oracion.categoria_ingles : oracion.categoria,
         };
       })
     );
 
     return resultado;
   }
+  // async obtenerOracionesParaJuego(
+  //   nivel_dificultad: string = 'medio',
+  //   cantidad: number = 6,
+  // ) {
+  //   const oraciones = await this.dataSource.query(  // ← CAMBIAR connection por dataSource
+  //     `SELECT * FROM oraciones 
+  //     WHERE nivel_dificultad = $1 
+  //     ORDER BY RANDOM() 
+  //     LIMIT $2`,
+  //     [nivel_dificultad, cantidad]
+  //   );
+
+  //   if (oraciones.length < cantidad) {
+  //     throw new BadRequestException(
+  //       `No hay suficientes oraciones de dificultad "${nivel_dificultad}". Se requieren al menos ${cantidad}`,
+  //     );
+  //   }
+
+  //   // Para cada oración, generar opciones
+  //   const resultado = await Promise.all(
+  //     oraciones.map(async (oracion) => {
+  //       // Buscar palabras similares para distractores
+  //       const palabrasSimilares = await this.palabraRepository
+  //         .createQueryBuilder('palabra')
+  //         .where('palabra.palabra_inga != :palabraClave', {
+  //           palabraClave: oracion.palabra_clave_inga,
+  //         })
+  //         .orderBy('RANDOM()')
+  //         .limit(3)
+  //         .getMany();
+
+  //       // Mezclar la palabra correcta con los distractores
+  //       const opciones = this.shuffleArray([
+  //         {
+  //           palabra_inga: oracion.palabra_clave_inga,
+  //           traduccion_espanol: oracion.palabra_clave_espanol,
+  //           es_correcta: true,
+  //         },
+  //         ...palabrasSimilares.map(p => ({
+  //           palabra_inga: p.palabra_inga,
+  //           traduccion_espanol: p.traduccion_espanol,
+  //           es_correcta: false,
+  //         })),
+  //       ]);
+
+  //       // Crear versión de la frase con hueco
+  //       const textoConHueco = oracion.texto_espanol.replace(
+  //         new RegExp(oracion.palabra_clave_espanol, 'i'),
+  //         '_____'
+  //       );
+
+  //       return {
+  //         id_oracion: oracion.id_oracion,
+  //         texto_espanol: textoConHueco,
+  //         texto_completo_espanol: oracion.texto_espanol,
+  //         texto_inga: oracion.texto_inga,
+  //         palabra_correcta: oracion.palabra_clave_inga,
+  //         palabra_correcta_espanol: oracion.palabra_clave_espanol,
+  //         opciones: opciones,
+  //         categoria: oracion.categoria,
+  //       };
+  //     })
+  //   );
+
+  //   return resultado;
+  // }
+  async crearOracion(dto: CreateOracionDto, id_usuario: number) {
+    const oracion = await this.dataSource.query(
+      `INSERT INTO oraciones 
+      (texto_espanol, texto_ingles, texto_inga, palabra_clave_inga, 
+        palabra_clave_espanol, palabra_clave_ingles, categoria, categoria_ingles,
+        nivel_dificultad, id_usuario)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *`,
+      [
+        dto.texto_espanol,
+        dto.texto_ingles,
+        dto.texto_inga,
+        dto.palabra_clave_inga,
+        dto.palabra_clave_espanol,
+        dto.palabra_clave_ingles,
+        dto.categoria,
+        dto.categoria_ingles,
+        dto.nivel_dificultad,
+        id_usuario,
+      ]
+    );
+    return oracion[0];
+  }
+  async eliminarOracion(id: number, id_usuario: number, rol: string) {
+    if (rol !== 'Administrador') {
+      throw new Error('Solo un Administrador puede eliminar oraciones');
+    }
+
+    const resultado = await this.dataSource.query(
+      `DELETE FROM oraciones WHERE id = $1 RETURNING *`,
+      [id]
+    );
+
+    if (resultado.length === 0) {
+      throw new Error('Oración no encontrada');
+    }
+
+    return {
+      message: 'Oración eliminada correctamente',
+      eliminada: resultado[0],
+    };
+  }
+
+
 }
