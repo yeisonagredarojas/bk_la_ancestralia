@@ -109,7 +109,7 @@ export class GamesService {
       /* ⭐ Integración con idiomas (del primer método) */
       traduccion:
         idioma === 'en'
-          ? palabra.traduccion_ingles
+          ? palabra.traduccion_ingles || palabra.traduccion_espanol
           : palabra.traduccion_espanol,
 
       traduccion_espanol: palabra.traduccion_espanol,
@@ -117,86 +117,20 @@ export class GamesService {
 
       /* ⭐ Integración de categorías multilenguaje */
       categoria:
-        idioma === 'en' ? palabra.categoria_ingles : palabra.categoria,
+        // idioma === 'en' ? palabra.categoria_ingles : palabra.categoria,
+        idioma === 'en'
+          ? palabra.categoria_ingles || palabra.categoria
+          : palabra.categoria,
 
       imagen: palabra.imagen,
       audio: palabra.audio,
     }));
+
   }
-  // async obtenerPalabrasParaJuego(id_leccion?: number, cantidad: number = 6) {
-  //   let palabras: Palabra[];
 
-  //   if (id_leccion) {
-  //     // Obtener palabras de una lección específica
-  //     const leccion = await this.leccionRepository.findOne({
-  //       where: { id_leccion },
-  //       relations: ['palabras'],
-  //     });
-  //     if (!leccion) throw new NotFoundException('Lección no encontrada');
-  //     palabras = leccion.palabras;
-  //   } else {
-  //     // Obtener palabras aleatorias de toda la base de datos
-  //     palabras = await this.palabraRepository
-  //       .createQueryBuilder('palabra')
-  //       .orderBy('RANDOM()')
-  //       .limit(cantidad * 2) // Más palabras para asegurar variedad
-  //       .getMany();
-  //   }
+  
 
-  //   if (palabras.length < cantidad) {
-  //     throw new BadRequestException(
-  //       `No hay suficientes palabras disponibles. Se requieren al menos ${cantidad}`,
-  //     );
-  //   }
 
-  //   // Seleccionar aleatoriamente la cantidad especificada
-  //   const palabrasSeleccionadas = this.shuffleArray(palabras).slice(0, cantidad);
-
-  //   return palabrasSeleccionadas.map((palabra) => ({
-  //     id_palabra: palabra.id_palabra,
-  //     palabra_inga: palabra.palabra_inga,
-  //     traduccion_espanol: palabra.traduccion_espanol,
-  //     categoria: palabra.categoria,
-  //     imagen: palabra.imagen,
-  //     audio: palabra.audio,
-  //   }));
-  // }
-
-  /*
-  // Finalizar una partida y actualizar progreso
-  async finalizarPartida(
-    id_partida: number,
-    finalizarDto: FinalizarPartidaDto,
-    id_usuario: number,
-  ) {
-    const partida = await this.partidaRepository.findOne({
-      where: { id_partida, id_usuario },
-      relations: ['juego'],
-    });
-
-    if (!partida) {
-      throw new NotFoundException('Partida no encontrada o no pertenece al usuario');
-    }
-
-    // Actualizar la partida
-    partida.puntuacion = finalizarDto.puntuacion;
-    partida.aciertos = finalizarDto.aciertos;
-    partida.errores = finalizarDto.errores;
-    partida.tiempo_segundos = finalizarDto.tiempo_segundos;
-    partida.completado = finalizarDto.completado;
-    partida.detalles = finalizarDto.detalles;
-    partida.fecha_fin = new Date();
-
-    await this.partidaRepository.save(partida);
-
-    // Actualizar el progreso del jugador
-    await this.actualizarProgreso(id_usuario, partida.id_juego, finalizarDto);
-
-    return {
-      mensaje: 'Partida finalizada con éxito',
-      partida,
-    };
-  }*/
 
   async finalizarPartida(
     id_partida: number,
@@ -242,41 +176,6 @@ export class GamesService {
     }
   }
 
-  // Actualizar el progreso general del usuario en un juego
-  // private async actualizarProgreso(
-  //   id_usuario: number,
-  //   id_juego: number,
-  //   resultado: FinalizarPartidaDto,
-  // ) {
-  //   let progreso = await this.progresoRepository.findOne({
-  //     where: { id_usuario, id_juego },
-  //   });
-
-  //   if (!progreso) {
-  //     progreso = this.progresoRepository.create({
-  //       id_usuario,
-  //       id_juego,
-  //     });
-  //   }
-
-  //   progreso.puntuacion_total += resultado.puntuacion;
-  //   progreso.partidas_jugadas += 1;
-  //   progreso.total_aciertos += resultado.aciertos;
-  //   progreso.total_errores += resultado.errores;
-
-  //   if (resultado.completado) {
-  //     progreso.partidas_completadas += 1;
-  //   }
-
-  //   if (resultado.puntuacion > progreso.mejor_puntuacion) {
-  //     progreso.mejor_puntuacion = resultado.puntuacion;
-  //   }
-
-  //   // Calcular nivel basado en puntuación total
-  //   progreso.nivel_actual = this.calcularNivel(progreso.puntuacion_total);
-
-  //   return this.progresoRepository.save(progreso);
-  // }
 
   private async actualizarProgreso(
     id_usuario: number,
@@ -401,74 +300,6 @@ export class GamesService {
 
     return categorias.map(c => c.categoria);
   }
-  // async obtenerCategorias() {
-  //   const categorias = await this.palabraRepository
-  //     .createQueryBuilder('palabra')
-  //     .select('palabra.categoria')
-  //     .distinct(true)
-  //     .where('palabra.categoria IS NOT NULL')
-  //     .orderBy('palabra.categoria', 'ASC')
-  //     .getRawMany();
-
-  //   return categorias.map(c => c.palabra_categoria);
-  // }
-
-
-  // Obtener palabras por categoría para el juego de imágenes
-  // async obtenerPalabrasPorCategoria(
-  //   categoria: string,
-  //   cantidad: number = 6,
-  //   soloConImagen: boolean = false,
-  // ) {
-  //   const queryBuilder = this.palabraRepository
-  //     .createQueryBuilder('palabra')
-  //     .where('palabra.categoria = :categoria', { categoria });
-
-  //   if (soloConImagen) {
-  //     queryBuilder.andWhere('palabra.imagen IS NOT NULL');
-  //   }
-
-  //   const palabras = await queryBuilder
-  //     .orderBy('RANDOM()')
-  //     .limit(cantidad * 2) // Más palabras para tener opciones
-  //     .getMany();
-
-  //   if (palabras.length < cantidad) {
-  //     throw new BadRequestException(
-  //       `No hay suficientes palabras en la categoría "${categoria}". Se requieren al menos ${cantidad}`,
-  //     );
-  //   }
-
-  //   // Separar palabras con imagen (correctas) y sin imagen (distractores)
-  //   const palabrasConImagen = palabras.filter(p => p.imagen);
-  //   const palabrasSinImagen = palabras.filter(p => !p.imagen);
-
-  //   // Seleccionar las palabras del juego
-  //   const palabrasJuego = this.shuffleArray(palabrasConImagen).slice(0, cantidad);
-    
-  //   // Para cada palabra correcta, agregar 2-3 distractores
-  //   const resultado = palabrasJuego.map(palabraCorrecta => {
-  //     const distractores = this.shuffleArray(
-  //       palabras.filter(p => p.id_palabra !== palabraCorrecta.id_palabra)
-  //     ).slice(0, 3);
-
-  //     const opciones = this.shuffleArray([palabraCorrecta, ...distractores]);
-
-  //     return {
-  //       imagen: palabraCorrecta.imagen,
-  //       palabra_correcta: palabraCorrecta.palabra_inga,
-  //       id_palabra_correcta: palabraCorrecta.id_palabra,
-  //       opciones: opciones.map(o => ({
-  //         id_palabra: o.id_palabra,
-  //         palabra_inga: o.palabra_inga,
-  //         traduccion_espanol: o.traduccion_espanol,
-  //       })),
-  //       categoria: palabraCorrecta.categoria,
-  //     };
-  //   });
-
-  //   return resultado;
-  // }
 
   async obtenerPalabrasPorCategoria(
     categoria: string,
@@ -476,9 +307,15 @@ export class GamesService {
     soloConImagen: boolean = false,
     idioma: string = 'es',
   ) {
+    // const queryBuilder = this.palabraRepository
+    //   .createQueryBuilder('palabra')
+    //   .where('palabra.categoria = :categoria', { categoria });
+
+    // dentro de obtenerPalabrasPorCategoria(categoria, cantidad, soloConImagen, idioma)
     const queryBuilder = this.palabraRepository
       .createQueryBuilder('palabra')
-      .where('palabra.categoria = :categoria', { categoria });
+      .where('(palabra.categoria = :categoria OR palabra.categoria_ingles = :categoria)', { categoria });
+
 
     if (soloConImagen) {
       queryBuilder.andWhere('palabra.imagen IS NOT NULL');
@@ -534,7 +371,10 @@ export class GamesService {
             : o.traduccion_espanol,
 
         })),
-        categoria: palabraCorrecta.categoria,
+        // categoria: palabraCorrecta.categoria,
+        categoria: idioma === 'en'
+          ? (palabraCorrecta.categoria_ingles || palabraCorrecta.categoria)
+          : palabraCorrecta.categoria,
       };
     });
 
@@ -593,7 +433,7 @@ export class GamesService {
 
         return {
           id_oracion: oracion.id_oracion,
-          texto_espanol: textoConHueco,
+          texto: textoConHueco,
           texto_completo_espanol: textoOriginal,
           texto_inga: oracion.texto_inga,
           palabra_correcta: oracion.palabra_clave_inga,
@@ -606,72 +446,7 @@ export class GamesService {
 
     return resultado;
   }
-  // async obtenerOracionesParaJuego(
-  //   nivel_dificultad: string = 'medio',
-  //   cantidad: number = 6,
-  // ) {
-  //   const oraciones = await this.dataSource.query(  // ← CAMBIAR connection por dataSource
-  //     `SELECT * FROM oraciones 
-  //     WHERE nivel_dificultad = $1 
-  //     ORDER BY RANDOM() 
-  //     LIMIT $2`,
-  //     [nivel_dificultad, cantidad]
-  //   );
 
-  //   if (oraciones.length < cantidad) {
-  //     throw new BadRequestException(
-  //       `No hay suficientes oraciones de dificultad "${nivel_dificultad}". Se requieren al menos ${cantidad}`,
-  //     );
-  //   }
-
-  //   // Para cada oración, generar opciones
-  //   const resultado = await Promise.all(
-  //     oraciones.map(async (oracion) => {
-  //       // Buscar palabras similares para distractores
-  //       const palabrasSimilares = await this.palabraRepository
-  //         .createQueryBuilder('palabra')
-  //         .where('palabra.palabra_inga != :palabraClave', {
-  //           palabraClave: oracion.palabra_clave_inga,
-  //         })
-  //         .orderBy('RANDOM()')
-  //         .limit(3)
-  //         .getMany();
-
-  //       // Mezclar la palabra correcta con los distractores
-  //       const opciones = this.shuffleArray([
-  //         {
-  //           palabra_inga: oracion.palabra_clave_inga,
-  //           traduccion_espanol: oracion.palabra_clave_espanol,
-  //           es_correcta: true,
-  //         },
-  //         ...palabrasSimilares.map(p => ({
-  //           palabra_inga: p.palabra_inga,
-  //           traduccion_espanol: p.traduccion_espanol,
-  //           es_correcta: false,
-  //         })),
-  //       ]);
-
-  //       // Crear versión de la frase con hueco
-  //       const textoConHueco = oracion.texto_espanol.replace(
-  //         new RegExp(oracion.palabra_clave_espanol, 'i'),
-  //         '_____'
-  //       );
-
-  //       return {
-  //         id_oracion: oracion.id_oracion,
-  //         texto_espanol: textoConHueco,
-  //         texto_completo_espanol: oracion.texto_espanol,
-  //         texto_inga: oracion.texto_inga,
-  //         palabra_correcta: oracion.palabra_clave_inga,
-  //         palabra_correcta_espanol: oracion.palabra_clave_espanol,
-  //         opciones: opciones,
-  //         categoria: oracion.categoria,
-  //       };
-  //     })
-  //   );
-
-  //   return resultado;
-  // }
   async crearOracion(dto: CreateOracionDto, id_usuario: number) {
     const oracion = await this.dataSource.query(
       `INSERT INTO oraciones 
@@ -713,6 +488,21 @@ export class GamesService {
       message: 'Oración eliminada correctamente',
       eliminada: resultado[0],
     };
+  
+  }
+
+  async obtenerJuegos(idioma: string = 'es') {
+    const juegos = await this.juegoRepository.find({ where: { activo: true } });
+
+    return juegos.map(juego => ({
+      id_juego: juego.id_juego,
+      nombre: idioma === 'en' ? juego.nombre_ingles : juego.nombre,
+      descripcion: idioma === 'en' ? juego.descripcion_ingles : juego.descripcion,
+      tipo_juego: juego.tipo_juego,
+      configuracion: juego.configuracion,
+      activo: juego.activo,
+      fecha_creacion: juego.fecha_creacion,
+    }));
   }
 
 

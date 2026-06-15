@@ -54,14 +54,6 @@ export class GamesController {
     return this.gamesService.obtenerPalabrasParaJuego(idLeccionNum, cantidadNum, idioma || 'es');
   }
 
-  // @Patch('partida/:id/finalizar')
-  // finalizarPartida(
-  //   @Param('id', ParseIntPipe) id: number,
-  //   @Body() finalizarDto: FinalizarPartidaDto,
-  //   @CurrentUser() user: any,
-  // ) {
-  //   return this.gamesService.finalizarPartida(id, finalizarDto, user.id_usuario);
-  // }
 
   @Patch('partida/:id/finalizar')
   finalizarPartida(
@@ -120,10 +112,7 @@ export class GamesController {
   obtenerCategorias(@Query('idioma') idioma?: string) {
     return this.gamesService.obtenerCategorias(idioma || 'es');
   }
-  // @Get('categorias')
-  // obtenerCategorias() {
-  //   return this.gamesService.obtenerCategorias();
-  // }
+
 
   // Obtener palabras por categoría para juego de imágenes
 
@@ -132,6 +121,7 @@ export class GamesController {
     @Param('categoria') categoria: string,
     @Query('cantidad') cantidad?: string,
     @Query('solo_con_imagen') soloConImagen?: string,
+    @Query('idioma') idioma?: string, // ← AGREGAR ESTO
   ) {
     const cantidadNum = cantidad ? parseInt(cantidad, 10) : 6;
     const soloImagen = soloConImagen === 'true';
@@ -139,20 +129,11 @@ export class GamesController {
       categoria,
       cantidadNum,
       soloImagen,
+      idioma || 'es', // ← PASARLO AL SERVICE
     );
   }
 
 
-  // Obtener oraciones para juego de completar frases
-  // @Get('oraciones')
-  // obtenerOracionesParaJuego(
-  //   @Query('nivel_dificultad') nivelDificultad?: string,
-  //   @Query('cantidad') cantidad?: string,
-  // ) {
-  //   const nivel = nivelDificultad || 'medio';
-  //   const cantidadNum = cantidad ? parseInt(cantidad, 10) : 6;
-  //   return this.gamesService.obtenerOracionesParaJuego(nivel, cantidadNum);
-  // }
 
   // Obtener oraciones con idioma
   @Get('oraciones')
@@ -183,5 +164,10 @@ export class GamesController {
     @CurrentUser() user: any,
   ) {
     return this.gamesService.eliminarOracion(id, user.id_usuario, user.rol);
+  }
+
+  @Get('games')
+  obtenerJuegos(@Query('idioma') idioma?: string) {
+    return this.gamesService.obtenerJuegos(idioma || 'es');
   }
 }

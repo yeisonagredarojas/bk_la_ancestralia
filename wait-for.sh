@@ -1,5 +1,5 @@
 #!/bin/sh
-# Espera a que Postgres esté disponible antes de iniciar el backend
+# Wait until PostgreSQL is available before starting the backend.
 
 set -e
 
@@ -8,9 +8,9 @@ shift
 cmd="$@"
 
 until nc -z "$host" 5432; do
-  echo "⏳ Esperando a que PostgreSQL ($host:5432) esté disponible..."
+  echo "Waiting for PostgreSQL ($host:5432)..."
   sleep 2
 done
 
-echo "✅ PostgreSQL está listo, iniciando la aplicación..."
+echo "PostgreSQL is ready, starting the application..."
 exec $cmd

@@ -6,21 +6,12 @@ import { UsuariosModule } from './usuarios/usuarios.module';
 import { RolesModule } from './roles/roles.module';
 import { PalabrasModule } from './palabras/palabras.module';
 import { LeccionesModule } from './lecciones/lecciones.module';
-
-
-// 👇 importa el controlador y servicio principales
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { GamesModule } from './games/games.module';
 
-import dataSource from './data-source';
-
-
 @Module({
   imports: [
-
-    TypeOrmModule.forRoot(dataSource.options),
-    // 👆 Esto conecta tu app con la base de datos según el archivo data-source.ts
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -34,7 +25,7 @@ import dataSource from './data-source';
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: false, // ¡Solo en desarrollo! Cambiar a false en producción
+        synchronize: false,
       }),
       inject: [ConfigService],
     }),
@@ -45,7 +36,6 @@ import dataSource from './data-source';
     LeccionesModule,
     GamesModule,
   ],
-  // 👇 agrega aquí
   controllers: [AppController],
   providers: [AppService],
 })

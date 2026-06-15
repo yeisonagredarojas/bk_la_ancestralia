@@ -10,9 +10,8 @@ COPY . .
 
 EXPOSE 3000
 
-# Da permisos de ejecución al script
 RUN chmod +x wait-for.sh
 
 RUN npm run build
 
-CMD ["./wait-for.sh", "postgres", "npm", "run", "start:dev"]
+CMD ["sh", "./wait-for.sh", "postgres", "npm", "run", "start:dev"]
